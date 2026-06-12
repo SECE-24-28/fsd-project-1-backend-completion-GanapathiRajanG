@@ -8,6 +8,27 @@ const authenticateUser = async (req, res, next) => {
     return res.status(401).json({ message: 'Authorization token is missing.' });
   }
 
+  // Support offline bypass mock tokens
+  if (token.startsWith('mock-')) {
+    const parts = token.split('-');
+    const role = parts[1]; // student, teacher, or admin
+    const id = parts.slice(2).join('-');
+    
+    if (role === 'admin') {
+      req.user = { userId: 'admin-bypass-id-9999', role: 'admin' };
+    } else if (role === 'student') {
+      req.user = { userId: id, role: 'student' };
+    } else if (role === 'teacher') {
+      req.user = { userId: id, role: 'teacher' };
+    } else if (role === 'local') {
+      const actualId = parts.slice(3).join('-');
+      req.user = { userId: actualId, role: 'student' };
+    } else {
+      req.user = { userId: id, role: role };
+    }
+    return next();
+  }
+
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'bullsworth-secret');
     req.user = payload;

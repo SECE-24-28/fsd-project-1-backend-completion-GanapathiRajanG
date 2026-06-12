@@ -172,9 +172,51 @@ const banUser = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.status(200).json({ message: 'User deleted successfully' });
+    const targetId = req.params.id;
+    
+    // Try to find if it is a User ID
+    let user = await User.findById(targetId);
+    let userId = targetId;
+
+    if (!user) {
+      // Maybe the targetId is a Student ID or Teacher ID?
+      const student = await Student.findById(targetId);
+      if (student) {
+        userId = student.userId;
+        user = await User.findById(userId);
+        
+        await Attendance.deleteMany({ studentId: student._id });
+        await Marks.deleteMany({ studentId: student._id });
+        await Fee.deleteMany({ studentId: student._id });
+        await Student.deleteOne({ _id: student._id });
+      } else {
+        const teacher = await Teacher.findById(targetId);
+        if (teacher) {
+          userId = teacher.userId;
+          user = await User.findById(userId);
+          await Teacher.deleteOne({ _id: teacher._id });
+        }
+      }
+    } else {
+      // targetId is User ID
+      if (user.role === 'student') {
+        const student = await Student.findOne({ userId: userId });
+        if (student) {
+          await Attendance.deleteMany({ studentId: student._id });
+          await Marks.deleteMany({ studentId: student._id });
+          await Fee.deleteMany({ studentId: student._id });
+          await Student.deleteOne({ _id: student._id });
+        }
+      } else if (user.role === 'teacher') {
+        await Teacher.deleteOne({ userId: userId });
+      }
+    }
+
+    if (user) {
+      await User.findByIdAndDelete(user._id);
+    }
+    
+    res.status(200).json({ message: 'User and associated profile records deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete user', error: error.message });
   }

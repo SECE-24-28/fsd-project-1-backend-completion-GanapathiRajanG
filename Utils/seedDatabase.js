@@ -33,6 +33,14 @@ const seedAll = async () => {
       console.log('Admin password updated successfully.');
     }
 
+    // Check if we already have student or teacher records in the database
+    const studentCount = await Student.countDocuments();
+    const teacherCount = await Teacher.countDocuments();
+    if (studentCount > 0 || teacherCount > 0) {
+      console.log('Database already contains student or teacher records. Skipping mock seeding to preserve modifications.');
+      return;
+    }
+
     // 2. Clear old mock records
     console.log('Clearing old mock records from all collections...');
     await Student.deleteMany({ email: /@bullsworth\.edu$/i });

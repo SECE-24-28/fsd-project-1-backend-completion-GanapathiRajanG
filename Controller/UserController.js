@@ -1,4 +1,6 @@
 const User = require('../Models/UserModel');
+const Student = require('../Models/StudentModel');
+const Teacher = require('../Models/TeacherModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -20,15 +22,36 @@ const signupUser = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
+    const isTeacher = email.toLowerCase().includes('faculty') || email.toLowerCase().includes('teacher');
+    const role = isTeacher ? 'teacher' : 'student';
+
     const user = new User({
       firstname,
       lastname,
       email: email.toLowerCase(),
       phone,
       password: hashedPassword,
+      role,
     });
 
     const savedUser = await user.save();
+
+    if (role === 'student') {
+      const student = new Student({
+        userId: savedUser._id,
+        name: `${savedUser.firstname} ${savedUser.lastname}`,
+        email: savedUser.email,
+      });
+      await student.save();
+    } else if (role === 'teacher') {
+      const teacher = new Teacher({
+        userId: savedUser._id,
+        name: `${savedUser.firstname} ${savedUser.lastname}`,
+        email: savedUser.email,
+      });
+      await teacher.save();
+    }
+
     const responseUser = {
       id: savedUser._id,
       firstname: savedUser.firstname,

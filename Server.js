@@ -8,10 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: [
-    'https://bullsworthcollegofengineering.netlify.app',
-    'http://localhost:3000',
-  ],
+  origin: true,
   credentials: true,
 }));
 
